@@ -35,6 +35,7 @@ class Vector(object):
         """ Returns the argument of the vector, the angle clockwise from +y."""
         arg_in_rad = math.acos(Vector(0,1)*self/self.norm())
         arg_in_deg = math.degrees(arg_in_rad)
+        arg_in_deg = math.degrees(arg_in_rad)
         if self.values[0]<0: return 360 - arg_in_deg
         else: return arg_in_deg
 
@@ -164,6 +165,10 @@ class RoundedCorners(inkex.Effect, inkscapeMadeEasy):
 				action="store", type="float", 
 				dest="RCradius", default=1.0,
 				help="Radius for rounded corners")
+		self.OptionParser.add_option("--units", action="store",
+                                     type="string", dest="units",
+                                     default="25.4/96") # Inches
+
 
 	def effect(self):
 		selection = self.selected
@@ -184,6 +189,14 @@ class RoundedCorners(inkex.Effect, inkscapeMadeEasy):
 		
 		#radius. should be user defined
 		r=self.options.RCradius
+
+		scale = eval(self.options.units)
+		if not scale:
+			scale = 25.4/96     
+		scale /= self.unittouu('1px')
+		r /= scale
+
+		
 		
 		p1 = Vector( float(point1[0]), float(point1[1]) )
 		p2 = Vector( float(point2[0]), float(point2[1]) )
