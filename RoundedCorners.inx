@@ -4,7 +4,6 @@
   <id>com.crowhoot.modify.roundedcorners</id>
   <dependency type="executable" location="extensions">inkex.py</dependency>
   <dependency type="executable" location="extensions">simplepath.py</dependency>
-  <dependency type="executable" location="extensions">inkscapeMadeEasy_Base.py</dependency>
   <param name="RCradius" type="float" min="0.001" max="10000.0" precision="3" _gui-text="Rounded Corner Radius:">1.000</param>
 	<param name="units" type="enum" _gui-text="Base unit:">
 		<_item value="72./96">pt</_item>
