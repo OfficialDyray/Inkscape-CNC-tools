@@ -17,7 +17,7 @@
 	</param>
   
   
-  <effect needs-live-preview="false">
+  <effect needs-live-preview="true">
 	<object-type>path</object-type>
 	<effects-menu>
 		<submenu _name="Modify Path"/>
