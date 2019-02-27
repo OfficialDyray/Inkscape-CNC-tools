@@ -1,6 +1,45 @@
 #!/usr/bin/env python 
-# License applies to both RoundedCorners code and Vector class downloaded from https://gist.github.com/mcleonard/5351452
-""" 
+
+"""
+==============================================================================================
+  Rounded Corners Version 1.1 by Chris Hawley
+  
+  This effect is designed to round off the corners on shapes made with the pencil tool.
+  It will round off corners made of straight edges, while ignoring bezier lines.
+  Corners that are too short for the desired radius will also be ignored.
+  It does not work on Inkscape objects like the rectangle or star - 
+  the user must convert objects to paths before using this extension.
+  
+  Usage: Select or create a polygon in Inkscape using the pencil tool, 
+  then click Extensions->Modify Path->Rounded Corners.  
+  Choose the radius for rounding, then click OK.
+==============================================================================================
+"""
+
+"""
+The MIT License (MIT)
+Copyright (c) 2019 Chris Hawley
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+"""
+
+
+"""
+==============================================================================================
+Vector class from https://gist.github.com/mcleonard/5351452
 The MIT License (MIT)
 Copyright (c) 2015 Mat Leonard
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -20,7 +59,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-# Vector class from https://gist.github.com/mcleonard/5351452
+"""
+================================================================================================
+begin Vector Class by Mat Leonard	
+================================================================================================
+"""	
 class Vector(object):
     def __init__(self, *args):
         """ Create a vector, example: v = Vector(1,2) """
@@ -136,29 +179,29 @@ class Vector(object):
         
     def __repr__(self):
 		return str(self.values)
-
+	
+"""
+================================================================================================
+end Vector Class by Mat Leonard	
+================================================================================================
+"""	
 
 
 
 
 
 """
-==============================================================================================
-  Rounded Corners
-  This effect is designed to round off the corners on shapes made with the pencil tool.
-  It works properly only on shapes made entirely of straight edges.  Using on bezier curves or other shapes has undefined results.
-  Usage: Select or create a polygon in inkscape, then click Extensions->Modify Path->Rounded Corners.  
-  Choose the radius for rounding, then click OK.
-==============================================================================================
-"""
-
+================================================================================================
+Begin Rounded Corners By Chris Hawley
+================================================================================================
+"""	
 import inkex
 import simplepath
 import re
-from inkscapeMadeEasy_Base import inkscapeMadeEasy 
 import math
+import sys
 
-class RoundedCorners(inkex.Effect, inkscapeMadeEasy):
+class RoundedCorners(inkex.Effect):
 	def __init__(self):
 		inkex.Effect.__init__(self)
 		self.OptionParser.add_option("--RCradius",
@@ -168,26 +211,37 @@ class RoundedCorners(inkex.Effect, inkscapeMadeEasy):
 		self.OptionParser.add_option("--units", action="store",
                                      type="string", dest="units",
                                      default="25.4/96") # Inches
+		self.newPath = []
 
 
 	def effect(self):
+		foundPath = False
+		succeededRounding = False
 		selection = self.selected
 		if (selection):
 			for id, node in selection.iteritems():
 				if node.tag == inkex.addNS('path','svg'):
-					self.MakeRound(node)
+					succeededRounding = self.MakeRound(node) or succeededRounding
+					foundPath = True
+			if foundPath == False:
+				inkex.errormsg("Suitable path not found.  Try converting to path first using the menu item 'Path->Object to Path'")
+			elif not succeededRounding:
+				inkex.errormsg("Couldn't find any suitable corners to round.")
 		else:
 			inkex.errormsg("Please select an object.")
 	
 	
-	def RoundCorner(self,point1,point2,point3,isLast):
+	def RoundCorner(self, cursorIndex, line1Index, arcIndex, line2Index):
 		#
 		#    p2 _________ p3
 		#      |
 		#      |    p0
 		#   p1 |
 		
-		#radius. should be user defined
+		#sys.stderr.write(str((cursorIndex, line1Index, arcIndex, line2Index)))
+		
+		
+		#radius. defined by user dialog
 		r=self.options.RCradius
 
 		scale = eval(self.options.units)
@@ -196,12 +250,16 @@ class RoundedCorners(inkex.Effect, inkscapeMadeEasy):
 		scale /= self.unittouu('1px')
 		r /= scale
 
-		
-		
-		p1 = Vector( float(point1[0]), float(point1[1]) )
-		p2 = Vector( float(point2[0]), float(point2[1]) )
-		p3 = Vector( float(point3[0]), float(point3[1]) )
+		p1 = Vector( self.newPath[cursorIndex][1][-2], self.newPath[cursorIndex][1][-1] )
+		p2 = Vector( self.newPath[line1Index][1][-2], self.newPath[line1Index][1][-1] )
+		p3 = Vector( self.newPath[line2Index][1][-2], self.newPath[line2Index][1][-1] )
 
+		if (p1-p2).norm() < .0001:
+			return
+		if (p2-p3).norm() < .0001:
+			return
+		
+		
 		#L20 = bisecting line. 320 and 120 are right triangles
 		
 		#point on line L12 that is 1 unit away from p2 (normalized)
@@ -239,7 +297,7 @@ class RoundedCorners(inkex.Effect, inkscapeMadeEasy):
 		p2y = p2[1]
 		
 		p0Dist = abs((p2y - p1y)*p0x - (p2x - p1x)*p0y + p2x * p1y - p2y*p1x)/math.sqrt((p2y-p1y)**2 + (p2x-p1x)**2)
-		multiplier = r/p0Dist;
+		multiplier = r/p0Dist
 
 		#p5 on the line L20, but the correct distance so that it is r away from the other lines
 		#it is the center point for the circle of radius r that touches the other 2 lines
@@ -257,121 +315,98 @@ class RoundedCorners(inkex.Effect, inkscapeMadeEasy):
 			Tangent1 = p5 + V12PerpRight * r
 			Tangent2 = p5 + V23PerpRight * r
 
-		#todo: check that [tangent points are closer to p2] than p1 and p3 are
-
+		#check that [tangent points are closer to p2] than p1 and p3 are
 		#if so, replace line from p1 to p1, and line from p2 to p3 with:
-
-		retval = ""
-		
-
-
 		#arc, starting on tangent1, centered at p5, radius r, ending on tangent2
-		
 		#A rx ry x-axis-rotation large-arc-flag sweep-flag x y
 		
 		allowed = True
 		if ((Tangent1 - p2).norm() > (p1 - p2).norm() + 0.001) or ((Tangent2 - p2).norm() > (p3 - p2).norm() + 0.001):
 			allowed = False
-		
-		if allowed:
-			#line from p1 to tangent 1
-			retval = retval + "L " + str(Tangent1[0]) + " " + str(Tangent1[1]) + "\n"
 			
-			if facingRight:
-				retval = retval + "A " + str(r) + " " + str(r) + " 0 0 1 " + str (Tangent2[0]) + " " + str (Tangent2[1]) + "\n" 
-	
-			else:
-				retval = retval + "A " + str(r) + " " + str(r) + " 0 0 0 " + str (Tangent2[0]) + " " + str (Tangent2[1]) + "\n"
-		else:
-			retval = retval + "L " + str(p2x) + " " + str(p2y) + "\n"
-		
-		
-		#line from tangent2 to p3
-		
-		if isLast:
-			retval = retval + "L " + str(p3[0]) + " " + str(p3[1]) + "\n"
-
-		#then itterate to next 3 points, but replacing the first point in that sequence with tangent2
-		#so the point indeces were 0,1,2,3,4 - this itteration did 0,1,2. Next instead of 1,2,3 - does tangent2,2,3
-
 		if allowed:
-			return [retval, [Tangent1[0],Tangent1[1]], [Tangent2[0],Tangent2[1]] ]
-		
-		else:
-			return [retval, [p2x, p2y], [p2x, p2y]]
+			
+			#line from p1 to tangent 1
+			self.newPath[line1Index] = ("L", [Tangent1[0], Tangent1[1]])
+			if facingRight:
+				self.newPath[arcIndex] = ("A", [ r,r,0,0,1,Tangent2[0],Tangent2[1]])
+			else:
+				self.newPath[arcIndex] = ("A", [ r,r,0,0,0,Tangent2[0],Tangent2[1]])
+				
+		return allowed
 	
 	def MakeRound(self, node):
 		dArr = simplepath.parsePath(node.get('d'))
 		dLen = len(dArr)
-				
-		lastCommand = dArr[dLen-1][0]
-		endchar = ''
-		if lastCommand == 'Z':
-			endchar = 'z'
 		
-		#list = self.getPoints(node.get('d'))
-		list = self.getPoints(node)
-		ListLength = len(list) 
-
-		newD = ""
-		firstPoint = "M " + str(list[0][0]) + " " + str(list[0][1]) + "\n"
+		if dLen < 3:
+			return 
 		
+		self.newPath = []
+		isClosed = False
 		
-		if endchar == '':
-			#Open path
-			i=0
-			isLast = False
-			while i < ListLength-2:
-				if i==0:
-					p1 = list[i]
-				else:
-					p1 = newpoint
-				
-				if i== ListLength-3:
-					isLast = True
-				
-				p2 = list[i+1]
-				p3 = list[i+2]
-				roundedstr, tanpt1, newpoint = self.RoundCorner(p1,p2,p3, isLast)
-				newD = newD + roundedstr
-				i = i+1
-			#end while
+		#make a new list of tupples. each tupple is a letter string, and a list of parameters
+		#every other tupple will start blank to make room for adding possible arcs as curved corners
+		
+		for i in range(dLen):
+			cmd, params = dArr[i]
+			if cmd != "Z":
+				self.newPath.append((cmd, params))
+				self.newPath.append(("",[]))
+			else:
+				isClosed = True
+			
+		if isClosed:
+			endIndex = len(self.newPath) - 1
 		else:
-			#closed path
-			i=0
-			isLast = False
-			while i < ListLength:
-				if i==0:
-					p1 = list[i]
-				else:
-					p1 = newpoint
+			endIndex = len(self.newPath) - 4
+		
+		npLen = len(self.newPath)
+		
+		succeeded = False
+		
+		debuglog = ""
+		
+		for n in range(0, endIndex, 2):
+			#get first point of possible corner
+			if self.newPath[(n+1) % npLen][0] != '':
+				cursorIndex = (n+1) % npLen
+			else:
+				cursorIndex = n
+		
+			#check if other 2 points are L, M, or Z commands. if so we have a corner
+			if self.newPath[(n+2) % npLen][0] in "LMZ" and self.newPath[(n+4) % npLen][0] in "LMZ":
 				
-				if i== ListLength-1:
-					isLast = True
-				
-				p2 = list[(i+1) % ListLength]
-				p3 = list[(i+2) % ListLength]
-				
-				if isLast:
-					roundedstr, tanpt1, newpoint = self.RoundCorner(p1,p2,finalClosedPoint, False)
-				else:
-					roundedstr, tanpt1, newpoint = self.RoundCorner(p1,p2,p3, False)
-				
-				if i==0:
-					finalClosedPoint = tanpt1
-				
-				newD = newD + roundedstr
-				if isLast:
-					firstPoint = "M " + str(finalClosedPoint[0]) + " " + str(finalClosedPoint[1]) + "\n"
-					
-				i = i + 1
-			#end while
-		newD = firstPoint + newD + endchar
-		node.set('d', newD)
-	
+				succeeded = self.RoundCorner(cursorIndex, (n+2) % npLen, (n+3) % npLen, (n+4) % npLen) or succeeded
+			
+		firstCommand, firstArgs = self.newPath[0]
+		self.newPath[0] = ('M', [firstArgs[-2], firstArgs[-1]]);
+		
+		
+		newDString = ""
+		
+		for cmd, params in self.newPath:
+			if cmd != '':
+				newDString += (cmd + " ")
+				newDString += ",".join(map (str, params))
+				newDString += "\n"
+		
+		if isClosed:
+			newDString += "Z\n"
+		
+		if succeeded:
+			node.set('d', newDString)
+
+		return succeeded
+
 
 
 if __name__ == '__main__':
 	e = RoundedCorners()
 	e.affect()
+
+	
+	
+	
+	
 
