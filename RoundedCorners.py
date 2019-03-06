@@ -2,7 +2,7 @@
 
 """
 ==============================================================================================
-  Rounded Corners Version 1.1 by Chris Hawley
+  Rounded Corners Version 1.3 by Chris Hawley
   
   This effect is designed to round off the corners on shapes made with the pencil tool.
   It will round off corners made of straight edges, while ignoring bezier lines.
@@ -10,9 +10,15 @@
   It does not work on Inkscape objects like the rectangle or star - 
   the user must convert objects to paths before using this extension.
   
-  Usage: Select or create a polygon in Inkscape using the pencil tool, 
-  then click Extensions->Modify Path->Rounded Corners.  
-  Choose the radius for rounding, then click OK.
+  Usage: 
+  1.  Select or create a polygon in Inkscape using the pencil tool 
+  2.  Click Extensions->Modify Path->Rounded Corners.  
+  3.  Fill out the options in the dialog that pop up
+		- Choose the radius for rounding
+		- Pick units (Inches, centimeters, etc.)
+		- pick whether you want left corners, right corners, or both to be rounded
+		- select "Live preview" to see how your selecttions affect the shape before applying
+  4.  Click Apply.
 ==============================================================================================
 """
 
@@ -211,6 +217,16 @@ class RoundedCorners(inkex.Effect):
 		self.OptionParser.add_option("--units", action="store",
                                      type="string", dest="units",
                                      default="25.4/96") # Inches
+		
+		
+		self.OptionParser.add_option("--LeftCorners", action="store",
+							 type="string", dest="LeftCorners",
+							 default=True) 
+							 
+		self.OptionParser.add_option("--RightCorners", action="store",
+							 type="string", dest="RightCorners",
+							 default=True) 							 
+							 
 		self.newPath = []
 
 
@@ -224,9 +240,9 @@ class RoundedCorners(inkex.Effect):
 					succeededRounding = self.MakeRound(node) or succeededRounding
 					foundPath = True
 			if foundPath == False:
-				inkex.errormsg("Suitable path not found.  Try converting to path first using the menu item 'Path->Object to Path'")
+				inkex.errormsg("Suitable path not found.  Try converting to path first using the menu item 'Path->Object to Path'.")
 			elif not succeededRounding:
-				inkex.errormsg("Couldn't find any suitable corners to round.")
+				inkex.errormsg("Couldn't find any suitable corners to round.  Try decreasing the Rounded Corner Radius.")
 		else:
 			inkex.errormsg("Please select an object.")
 	
@@ -243,7 +259,13 @@ class RoundedCorners(inkex.Effect):
 		
 		#radius. defined by user dialog
 		r=self.options.RCradius
-
+		
+		roundLeft = self.options.LeftCorners.lower() == 'true'
+		roundRight = self.options.RightCorners.lower() == 'true'
+		
+		if (not roundLeft) and (not roundRight):
+			return True
+		
 		scale = eval(self.options.units)
 		if not scale:
 			scale = 25.4/96     
@@ -321,6 +343,13 @@ class RoundedCorners(inkex.Effect):
 		#A rx ry x-axis-rotation large-arc-flag sweep-flag x y
 		
 		allowed = True
+		
+		if facingRight and (not roundRight):
+			allowed = False;
+			
+		if (not facingRight) and (not roundLeft):
+			allowed = False;
+		
 		if ((Tangent1 - p2).norm() > (p1 - p2).norm() + 0.001) or ((Tangent2 - p2).norm() > (p3 - p2).norm() + 0.001):
 			allowed = False
 			
