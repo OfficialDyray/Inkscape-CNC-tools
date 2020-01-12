@@ -319,6 +319,8 @@ class RoundedCorners(inkex.Effect):
 		p2y = p2[1]
 		
 		p0Dist = abs((p2y - p1y)*p0x - (p2x - p1x)*p0y + p2x * p1y - p2y*p1x)/math.sqrt((p2y-p1y)**2 + (p2x-p1x)**2)
+		if p0Dist < .00001:
+			return false
 		multiplier = r/p0Dist
 
 		#p5 on the line L20, but the correct distance so that it is r away from the other lines
