@@ -1,4 +1,6 @@
-# Inkscape-Rounded-Corners
+# Inkscape-CNC-tools
+I will work on this extension more when I get the time. My goal for this is to develop tools for preparing paths to be CNC'ed. I also plan on updating it for the latest versions of inkscape.
+## Rounded Corners
 Inkscape extension for rounding off the corners of straight-edged polygons
 
 Note: This plugin is not compatible with Inkscape 1.0+ due to plugin API changes.
@@ -7,11 +9,8 @@ Rounded Corners is an extension written for Inkscape.
 This effect is designed to round off the corners on shapes made with the pencil tool. It will round off corners made of straight edges, while ignoring bezier lines. Corners that are too short for the desired radius will also be ignored. It does not work on Inkscape objects like the rectangle or star - the user must convert objects to paths before using this extension.
 
 Installation:
-Copy the files RoundedCorners.inx and RoundedCorners.py into the Extensions folder in your Inkscape directory. On windows, this is located at C:\Users[username]\AppData\Roaming\inkscape\extensions. Alternatively it can be copied to C:\Program Files\Inkscape\share\extensions. Tested on Inkscape for Windows, version 0.92.
-
-on linux, the folder is generally located at ~/.config/inkscape/extensions/
-
-As of version 1.1 of this plugin, InkscapeMadeEasy is no longer required.
+Copy the files RoundedCorners.inx and RoundedCorners.py into the Extensions folder in your Inkscape directory. On windows, this is located at C:\Users[username]\AppData\Roaming\inkscape\extensions. Alternatively it can be copied to C:\Program Files\Inkscape\share\extensions.
+on linux, the folder is generally located at ~/.config/inkscape/extensions.
 
 Usage:
 Select or create a polygon in Inkscape using the pencil tool
